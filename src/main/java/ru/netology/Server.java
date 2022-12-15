@@ -26,7 +26,7 @@ public class Server {
 
     private Server() {
         try (final var serverSocket = new ServerSocket(PORT)) { //final переменные указанные в коде курса
-                                                                // нижним регистром не менял.
+            // нижним регистром не менял.
             while (true) {
                 try (final var socket = serverSocket.accept();
                      final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -126,9 +126,8 @@ public class Server {
         return task.get();
     }
 
-    public boolean pageFoundClassic(BufferedOutputStream out, Path filePath,
-                                    String mimeType) throws
-            ExecutionException, InterruptedException {
+    public boolean pageFoundClassic(BufferedOutputStream out, Path filePath, String mimeType)
+            throws ExecutionException, InterruptedException {
         Callable<Boolean> myCallable = () -> {
             if (path.equals("/classic.html")) {
                 final var template = Files.readString(filePath);
