@@ -8,44 +8,42 @@ import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class Server {
-    private static final int PORT = 9999;
     private static Server instance;
-    private final List<Thread> threads = new ArrayList<>();
     private String path;
-    private final ExecutorService threadPool = Executors.newFixedThreadPool(64);
-    private final List<String> validPaths = List.of("/index.html", "/spring.svg", "/spring.png", "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html", "/classic.html", "/events.html", "/events.js");
+    private String[] parts = null;
+    private static final int PORT = 9999;
+    private static final int LENGTH = 3;
+    private static final int NUMBER_THREADS = 64;
+    private Future<Boolean> task;
+    private final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(NUMBER_THREADS);
+    private final List<String> VALID_PATHS = List.of("/index.html", "/spring.svg", "/spring.png",
+            "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html", "/classic.html",
+            "/events.html", "/events.js");
 
     private Server() {
-        try (final var serverSocket = new ServerSocket(PORT)) {
+        try (final var serverSocket = new ServerSocket(PORT)) { //final переменные указанные в коде курса
+                                                                // нижним регистром не менял.
             while (true) {
                 try (final var socket = serverSocket.accept();
                      final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                      final var out = new BufferedOutputStream(socket.getOutputStream());
                 ) {
-                    String[] parts = processingRequestLine(in);
-                    path = parts[1];
+                    processingRequestLine(in);
 
-                    boolean validationRequestLine = requestValidation(parts);
-
-                    if (!validationRequestLine) {
+                    if (!requestValidation(parts) || noPage(out)) {
                         continue;
                     }
 
-                    boolean pageAvailability = noPage(parts, out);
-
-                    if (pageAvailability) {
-                        continue;
-                    }
-                    pageFound(parts, out);
+                    pageFound(out);
 
                 } catch (IOException e) {
                     e.printStackTrace();
+                } catch (ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
             }
         } catch (IOException e) {
@@ -53,33 +51,39 @@ public class Server {
         }
     }
 
-        public static Server getInstance() {
-            if (instance == null) {
-                synchronized (Server.class) {
-                    instance = new Server();
-                }
+    public static Server getInstance() {
+        if (instance == null) {
+            synchronized (Server.class) {
+                instance = new Server();
             }
-            return instance;
         }
+        return instance;
+    }
 
-        public String[] processingRequestLine (BufferedReader in) throws IOException {
+    public boolean processingRequestLine(BufferedReader in) throws IOException, ExecutionException,
+            InterruptedException {
+        Callable<Boolean> myCallable = () -> {
             final String requestLine;
             requestLine = in.readLine();
-            final var parts = requestLine.split(" ");
-            return parts;
-        }
+            parts = requestLine.split(" ");
+            path = parts[1];
+            return true;
+        };
+        task = THREAD_POOL.submit(myCallable);
+        return task.get();
+    }
 
-        public boolean requestValidation (String[]parts){
-            if (parts.length != 3) {
-                return false;
-            } else {
-                return true;
-            }
-        }
+    public boolean requestValidation(String[] parts) throws ExecutionException,
+            InterruptedException {
+        Callable<Boolean> myCallable = () -> parts.length == LENGTH;
+        task = THREAD_POOL.submit(myCallable);
+        return task.get();
+    }
 
-        public boolean noPage (String[]parts, BufferedOutputStream out) throws IOException {
-
-            if (!validPaths.contains(path)) {
+    public boolean noPage(BufferedOutputStream out) throws IOException,
+            ExecutionException, InterruptedException {
+        Callable<Boolean> myCallable = () -> {
+            if (!VALID_PATHS.contains(path)) {
                 out.write((
                         "HTTP/1.1 404 Not Found\r\n" +
                                 "Content-Length: 0\r\n" +
@@ -91,12 +95,17 @@ public class Server {
             } else {
                 return false;
             }
-        }
+        };
+        task = THREAD_POOL.submit(myCallable);
+        return task.get();
+    }
 
-        public boolean pageFound (String[]parts, BufferedOutputStream out) throws IOException {
+    public boolean pageFound(BufferedOutputStream out) throws IOException,
+            ExecutionException, InterruptedException {
+        Callable<Boolean> myCallable = () -> {
             final var filePath = Path.of(".", "public", path);
             final var mimeType = Files.probeContentType(filePath);
-            boolean pageClassic = pageFoundClassic(parts, out, filePath, mimeType);
+            boolean pageClassic = pageFoundClassic(out, filePath, mimeType);
             if (pageClassic) {
                 return false;
             }
@@ -112,11 +121,15 @@ public class Server {
             Files.copy(filePath, out);
             out.flush();
             return true;
-        }
+        };
+        task = THREAD_POOL.submit(myCallable);
+        return task.get();
+    }
 
-        public boolean pageFoundClassic (String[]parts, BufferedOutputStream out, Path filePath, String mimeType) throws
-        IOException {
-            // special case for classic
+    public boolean pageFoundClassic(BufferedOutputStream out, Path filePath,
+                                    String mimeType) throws
+            ExecutionException, InterruptedException {
+        Callable<Boolean> myCallable = () -> {
             if (path.equals("/classic.html")) {
                 final var template = Files.readString(filePath);
                 final var content = template.replace(
@@ -136,5 +149,8 @@ public class Server {
             } else {
                 return false;
             }
-        }
+        };
+        task = THREAD_POOL.submit(myCallable);
+        return task.get();
     }
+}
