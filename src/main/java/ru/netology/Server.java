@@ -25,7 +25,6 @@ public class Server {
     private final Map<String, Handler> handlersVerb = new ConcurrentHashMap<>();
     private final Map<String, Handler> handlersPath = new ConcurrentHashMap<>();
 
-
     private Server() {
     }
 
@@ -38,61 +37,12 @@ public class Server {
         return instance;
     }
 
-    public static List<String> getHeaders(BufferedReader in) throws IOException, ExecutionException,
-            InterruptedException {
-        Callable<List<String>> myCallable = () -> {
-            List<String> headers = new ArrayList<>();
-            while (true) {
-                String header = in.readLine();
-                if (!header.equals("")) {
-                    headers.add(header);
-                } else {
-                    break;
-                }
-            }
-            return headers;
-        };
-        Future<List<String>> taskList = THREAD_POOL.submit(myCallable);
-        return taskList.get();
-    }
-
-    public static String getBody(BufferedReader in) throws ExecutionException, InterruptedException {
-        Callable<String> myCallable = () -> {
-            String body = in.readLine();
-            return body;
-        };
-        Future<String> taskBody = THREAD_POOL.submit(myCallable);
-        return taskBody.get();
-    }
-
-    public static Request buildRequest(String[] parts, BufferedReader in) throws IOException,
-            ExecutionException, InterruptedException {
-        String verb = parts[0];
-        List<String> headers = getHeaders(in);
-        String body = null;
-
-        for (String result : headers) {
-            if (result.contains("Content-Length")) {
-                body = getBody(in);
-            }
-        }
-
-        if (body != null) {
-            return new Request(verb, headers, body);
-        } else {
-            return new Request(verb, headers);
-        }
-    }
-
-    public boolean addHandler(String verb, String path, Handler handler) throws ExecutionException,
-            InterruptedException {
-        Callable<Boolean> myCallable = () -> {
+    public void addHandler(String verb, String path, Handler handler) {
+        Runnable myRunnable = () -> {
             handlersVerb.putIfAbsent(verb, handler);
             handlersPath.putIfAbsent(path, handler);
-            return true;
         };
-        task = THREAD_POOL.submit(myCallable);
-        return task.get();
+        THREAD_POOL.submit(myRunnable);
     }
 
     public void listen(int port) throws IOException {
@@ -109,7 +59,6 @@ public class Server {
                     }
 
                     buildRequest(parts, in);
-
 
                 } catch (IOException | InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
@@ -209,5 +158,53 @@ public class Server {
         };
         task = THREAD_POOL.submit(myCallable);
         return task.get();
+    }
+    public static List<String> getHeaders(BufferedReader in) throws IOException, ExecutionException,
+            InterruptedException {
+        Callable<List<String>> myCallable = () -> {
+            List<String> headers = new ArrayList<>();
+            while (true) {
+                String header = in.readLine();
+                if (!header.equals("")) {
+                    headers.add(header);
+                } else {
+                    break;
+                }
+            }
+            return headers;
+        };
+        Future<List<String>> taskList = THREAD_POOL.submit(myCallable);
+        return taskList.get();
+    }
+    public static String getBody(BufferedReader in) throws ExecutionException, InterruptedException {
+        Callable<String> myCallable = () -> {
+            String body = in.readLine();
+            return body;
+        };
+        Future<String> taskBody = THREAD_POOL.submit(myCallable);
+        return taskBody.get();
+    }
+
+    public Request buildRequest(String[] parts, BufferedReader in) throws IOException,
+            ExecutionException, InterruptedException {
+        Callable<Request> myCallable = () -> {
+            String verb = parts[0];
+            List<String> headers = getHeaders(in);
+            String body = null;
+
+            for (String result : headers) {
+                if (result.contains("Content-Length")) {
+                    body = getBody(in);
+                }
+            }
+
+            if (body != null) {
+                return new Request(verb, headers, body);
+            } else {
+                return new Request(verb, headers);
+            }
+        };
+        Future<Request> taskRequest = THREAD_POOL.submit(myCallable);
+        return taskRequest.get();
     }
 }
