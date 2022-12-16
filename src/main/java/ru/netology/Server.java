@@ -8,47 +8,25 @@ import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class Server {
     private static Server instance;
     private String path;
     private String[] parts = null;
-    private static final int PORT = 9999;
     private static final int LENGTH = 3;
     private static final int NUMBER_THREADS = 64;
     private Future<Boolean> task;
-    private final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(NUMBER_THREADS);
+    private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(NUMBER_THREADS);
     private final List<String> VALID_PATHS = List.of("/index.html", "/spring.svg", "/spring.png",
             "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html", "/classic.html",
             "/events.html", "/events.js");
+    private final Map<String, Handler> handlersVerb = new ConcurrentHashMap<>();
+    private final Map<String, Handler> handlersPath = new ConcurrentHashMap<>();
+
 
     private Server() {
-        try (final var serverSocket = new ServerSocket(PORT)) { //final переменные указанные в коде курса
-            // нижним регистром не менял.
-            while (true) {
-                try (final var socket = serverSocket.accept();
-                     final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                     final var out = new BufferedOutputStream(socket.getOutputStream());
-                ) {
-                    processingRequestLine(in);
-
-                    if (!requestValidation(parts) || noPage(out)) {
-                        continue;
-                    }
-
-                    pageFound(out);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     public static Server getInstance() {
@@ -58,6 +36,86 @@ public class Server {
             }
         }
         return instance;
+    }
+
+    public static List<String> getHeaders(BufferedReader in) throws IOException, ExecutionException,
+            InterruptedException {
+        Callable<List<String>> myCallable = () -> {
+            List<String> headers = new ArrayList<>();
+            while (true) {
+                String header = in.readLine();
+                if (!header.equals("")) {
+                    headers.add(header);
+                } else {
+                    break;
+                }
+            }
+            return headers;
+        };
+        Future<List<String>> taskList = THREAD_POOL.submit(myCallable);
+        return taskList.get();
+    }
+
+    public static String getBody(BufferedReader in) throws ExecutionException, InterruptedException {
+        Callable<String> myCallable = () -> {
+            String body = in.readLine();
+            return body;
+        };
+        Future<String> taskBody = THREAD_POOL.submit(myCallable);
+        return taskBody.get();
+    }
+
+    public static Request buildRequest(String[] parts, BufferedReader in) throws IOException,
+            ExecutionException, InterruptedException {
+        String verb = parts[0];
+        List<String> headers = getHeaders(in);
+        String body = null;
+
+        for (String result : headers) {
+            if (result.contains("Content-Length")) {
+                body = getBody(in);
+            }
+        }
+
+        if (body != null) {
+            return new Request(verb, headers, body);
+        } else {
+            return new Request(verb, headers);
+        }
+    }
+
+    public boolean addHandler(String verb, String path, Handler handler) throws ExecutionException,
+            InterruptedException {
+        Callable<Boolean> myCallable = () -> {
+            handlersVerb.putIfAbsent(verb, handler);
+            handlersPath.putIfAbsent(path, handler);
+            return true;
+        };
+        task = THREAD_POOL.submit(myCallable);
+        return task.get();
+    }
+
+    public void listen(int port) throws IOException {
+        try (final var serverSocket = new ServerSocket(port)) {
+            while (true) {
+                try (final var socket = serverSocket.accept();
+                     final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                     final var out = new BufferedOutputStream(socket.getOutputStream());
+                ) {
+                    processingRequestLine(in);
+
+                    if (!requestValidation(parts)) {
+                        continue;
+                    }
+
+                    buildRequest(parts, in);
+
+
+                } catch (IOException | InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
     }
 
     public boolean processingRequestLine(BufferedReader in) throws IOException, ExecutionException,
