@@ -24,15 +24,8 @@ public class Request {
         return verb;
     }
 
-    public String getBody() {
-        return body;
-    }
     public String getPath() {
         return path;
-    }
-
-    public void setBody(String body) {
-        this.body = body;
     }
 
     @Override
