@@ -5,10 +5,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 
 public class Server {
@@ -54,9 +53,23 @@ public class Server {
                         continue;
                     }
 
-                    Request request = buildRequest(parts,in);
-
-
+                    Request request = buildRequest(parts, in);
+                    Handler desiredHandler = null;
+                    Handler handlerVerb = handlersVerb.get(request.getVerb());
+                    Handler handlerPath = handlersPath.get(request.getPath());
+                    if (handlerVerb.equals(handlerPath)) {
+                        desiredHandler = handlerPath;
+                    } else {
+                        out.write((
+                                "HTTP/1.1 404 Not Found\r\n" +
+                                        "Content-Length: 0\r\n" +
+                                        "Connection: close\r\n" +
+                                        "\r\n"
+                        ).getBytes());
+                        out.flush();
+                        continue;
+                    }
+                    desiredHandler.handle(request, out);
 
                 } catch (IOException | InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
@@ -88,6 +101,7 @@ public class Server {
             ExecutionException, InterruptedException {
         Callable<Request> myCallable = () -> {
             String verb = parts[0];
+            String path = parts[1];
             List<String> headers = getHeaders(in);
             String body = null;
 
@@ -98,14 +112,15 @@ public class Server {
             }
 
             if (body != null) {
-                return new Request(verb, headers, body);
+                return new Request(verb, path, headers, body);
             } else {
-                return new Request(verb, headers);
+                return new Request(verb, path, headers);
             }
         };
         Future<Request> taskRequest = THREAD_POOL.submit(myCallable);
         return taskRequest.get();
     }
+
     public static List<String> getHeaders(BufferedReader in) throws IOException, ExecutionException,
             InterruptedException {
         Callable<List<String>> myCallable = () -> {
