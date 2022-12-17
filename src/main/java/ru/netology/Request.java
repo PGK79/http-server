@@ -17,6 +17,10 @@ public class Request {
         this.body = body;
     }
 
+    public String getVerb() {
+        return verb;
+    }
+
     @Override
     public String toString() {
         return "Метод: " + verb + "\n" + "Заголовки:\n " + headers + "\nТело:\n " + body;
