@@ -23,7 +23,7 @@ public class Server {
     private Server() {
     }
 
-    public static Server getInstance() throws IOException {
+    public static Server getInstance() {
         if (instance == null) {
             synchronized (Server.class) {
                 instance = new Server();
@@ -121,7 +121,7 @@ public class Server {
         return taskRequest.get();
     }
 
-    public static List<String> getHeaders(BufferedReader in) throws IOException, ExecutionException,
+    public static List<String> getHeaders(BufferedReader in) throws ExecutionException,
             InterruptedException {
         Callable<List<String>> myCallable = () -> {
             List<String> headers = new ArrayList<>();
@@ -139,7 +139,8 @@ public class Server {
         return taskList.get();
     }
 
-    public static String getBody(BufferedReader in) throws ExecutionException, InterruptedException {
+    public static String getBody(BufferedReader in) throws ExecutionException,
+            InterruptedException {
         Callable<String> myCallable = () -> {
             String body = in.readLine();
             return body;
