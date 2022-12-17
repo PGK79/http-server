@@ -19,9 +19,8 @@ public class Main {
                                 "Content-Type: " + mimeType + "\r\n" +
                                 "Content-Length: " + length + "\r\n" +
                                 "Connection: close\r\n" +
-                                "\r\n"
+                                "\r\n" + content
                 ).getBytes());
-                responseStream.write(content.getBytes());
                 responseStream.flush();
             }
         });
@@ -36,10 +35,8 @@ public class Main {
                                 "Content-Type: " + mimeType + "\r\n" +
                                 "Content-Length: " + length + "\r\n" +
                                 "Connection: close\r\n" +
-                                "\r\n"
+                                "\r\n" + content
                 ).getBytes());
-
-                responseStream.write(content.getBytes());
                 responseStream.flush();
             }
         });
