@@ -47,7 +47,12 @@ public class Server {
                      final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                      final var out = new BufferedOutputStream(socket.getOutputStream());
                 ) {
-                    processingRequestLine(in);
+//                    processingRequestLine(in);
+
+                    if (!processingRequestLine(in)) {
+                        System.out.println("Прислана пустая строка");
+                        continue;
+                    }
 
                     if (!requestValidation(parts)) {
                         continue;
@@ -84,8 +89,12 @@ public class Server {
         Callable<Boolean> myCallable = () -> {
             final String requestLine;
             requestLine = in.readLine();
-            parts = requestLine.split(" ");
-            return true;
+            if (requestLine != null) {
+                parts = requestLine.split(" ");
+                return true;
+            }else{
+                return false;
+            }
         };
         task = THREAD_POOL.submit(myCallable);
         return task.get();
