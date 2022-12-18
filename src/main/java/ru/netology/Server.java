@@ -137,6 +137,9 @@ public class Server {
             Handler desiredHandler = null;
             Handler verbName = null;
 
+            String[] pathFragments = request.getPath().split("\\?");
+            String onlyPath = pathFragments[0];
+
             for (Map.Entry<Handler, String> kv : handlersVerb.entrySet()) {
                 if (kv.getValue().equals(request.getVerb())) {
                     verbName = kv.getKey();
@@ -144,7 +147,7 @@ public class Server {
             }
 
             for (Map.Entry<Handler, String> kv : handlersPath.entrySet()) {
-                if (kv.getKey().equals(verbName) & kv.getValue().equals(request.getPath())) {
+                if (kv.getKey().equals(verbName) & kv.getValue().equals(onlyPath)) {
                     desiredHandler = kv.getKey();
                 }
             }
