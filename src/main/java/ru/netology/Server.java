@@ -70,7 +70,10 @@ public class Server {
                     desiredHandler.handle(request, out);
 
                 } catch (IOException | InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
+                    e.printStackTrace();
+                    // Если ошибка прекратить потоки и цикл
+                    THREAD_POOL.shutdown();
+                    break;
                 }
             }
         }
