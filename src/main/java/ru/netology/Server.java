@@ -47,9 +47,10 @@ public class Server {
                      final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                      final var out = new BufferedOutputStream(socket.getOutputStream());
                 ) {
-//                    processingRequestLine(in);
 
-                    if (!processingRequestLine(in)) {
+                    boolean noEmptyRequest = processingRequestLine(in);
+
+                    if (noEmptyRequest == false) {
                         System.out.println("Прислана пустая строка");
                         continue;
                     }
@@ -92,7 +93,7 @@ public class Server {
             if (requestLine != null) {
                 parts = requestLine.split(" ");
                 return true;
-            }else{
+            } else {
                 return false;
             }
         };
