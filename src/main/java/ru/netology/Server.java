@@ -54,20 +54,7 @@ public class Server {
                     }
 
                     Request request = buildRequest(parts, in);
-                    Handler desiredHandler = null;
-                    Handler verbName = null;
-
-                    for (Map.Entry<Handler, String> kv : handlersVerb.entrySet()) {
-                        if (kv.getValue().equals(request.getVerb())) {
-                            verbName = kv.getKey();
-                        }
-                    }
-
-                    for (Map.Entry<Handler, String> kv : handlersPath.entrySet()) {
-                        if (kv.getKey().equals(verbName)) {
-                            desiredHandler = kv.getKey();
-                        }
-                    }
+                    Handler desiredHandler = handlerSearch(request);
 
                     if (desiredHandler == null) {
                         out.write((
@@ -79,6 +66,7 @@ public class Server {
                         out.flush();
                         continue;
                     }
+
                     desiredHandler.handle(request, out);
 
                 } catch (IOException | InterruptedException | ExecutionException e) {
@@ -88,18 +76,16 @@ public class Server {
         }
     }
 
-    public void processingRequestLine(BufferedReader in) throws IOException, ExecutionException,
+    public boolean processingRequestLine(BufferedReader in) throws IOException, ExecutionException,
             InterruptedException {
-        Runnable myRunnable = () -> {
+        Callable<Boolean> myCallable = () -> {
             final String requestLine;
-            try {
-                requestLine = in.readLine();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            requestLine = in.readLine();
             parts = requestLine.split(" ");
+            return true;
         };
-        THREAD_POOL.submit(myRunnable);
+        task = THREAD_POOL.submit(myCallable);
+        return task.get();
     }
 
     public boolean requestValidation(String[] parts) throws ExecutionException,
@@ -130,6 +116,28 @@ public class Server {
             }
         };
         Future<Request> taskRequest = THREAD_POOL.submit(myCallable);
+        return taskRequest.get();
+    }
+
+    public Handler handlerSearch(Request request) throws ExecutionException, InterruptedException {
+        Callable<Handler> myCallable = () -> {
+            Handler desiredHandler = null;
+            Handler verbName = null;
+
+            for (Map.Entry<Handler, String> kv : handlersVerb.entrySet()) {
+                if (kv.getValue().equals(request.getVerb())) {
+                    verbName = kv.getKey();
+                }
+            }
+
+            for (Map.Entry<Handler, String> kv : handlersPath.entrySet()) {
+                if (kv.getKey().equals(verbName)) {
+                    desiredHandler = kv.getKey();
+                }
+            }
+            return desiredHandler;
+        };
+        Future<Handler> taskRequest = THREAD_POOL.submit(myCallable);
         return taskRequest.get();
     }
 
