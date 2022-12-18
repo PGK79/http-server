@@ -17,8 +17,8 @@ public class Server {
     private static final int NUMBER_THREADS = 64;
     private Future<Boolean> task;
     private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(NUMBER_THREADS);
-    private final Map<String, Handler> handlersVerb = new ConcurrentHashMap<>();
-    private final Map<String, Handler> handlersPath = new ConcurrentHashMap<>();
+    private final Map<Handler, String> handlersVerb = new ConcurrentHashMap<>();
+    private final Map<Handler, String> handlersPath = new ConcurrentHashMap<>();
 
     private Server() {
     }
@@ -34,8 +34,8 @@ public class Server {
 
     public void addHandler(String verb, String path, Handler handler) {
         Runnable myRunnable = () -> {
-            handlersVerb.putIfAbsent(verb, handler);
-            handlersPath.putIfAbsent(path, handler);
+            handlersVerb.putIfAbsent(handler, verb);
+            handlersPath.putIfAbsent(handler, path);
         };
         THREAD_POOL.submit(myRunnable);
     }
@@ -55,11 +55,21 @@ public class Server {
 
                     Request request = buildRequest(parts, in);
                     Handler desiredHandler = null;
-                    Handler handlerVerb = handlersVerb.get(request.getVerb());
-                    Handler handlerPath = handlersPath.get(request.getPath());
-                    if (handlerVerb.equals(handlerPath)) {
-                        desiredHandler = handlerPath;
-                    } else {
+                    Handler verbName = null;
+
+                    for (Map.Entry<Handler, String> kv : handlersVerb.entrySet()) {
+                        if (kv.getValue().equals(request.getVerb())) {
+                            verbName = kv.getKey();
+                        }
+                    }
+
+                    for (Map.Entry<Handler, String> kv : handlersPath.entrySet()) {
+                        if (kv.getKey().equals(verbName)) {
+                            desiredHandler = kv.getKey();
+                        }
+                    }
+
+                    if (desiredHandler == null) {
                         out.write((
                                 "HTTP/1.1 404 Not Found\r\n" +
                                         "Content-Length: 0\r\n" +
@@ -78,16 +88,18 @@ public class Server {
         }
     }
 
-    public boolean processingRequestLine(BufferedReader in) throws IOException, ExecutionException,
+    public void processingRequestLine(BufferedReader in) throws IOException, ExecutionException,
             InterruptedException {
-        Callable<Boolean> myCallable = () -> {
+        Runnable myRunnable = () -> {
             final String requestLine;
-            requestLine = in.readLine();
+            try {
+                requestLine = in.readLine();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             parts = requestLine.split(" ");
-            return true;
         };
-        task = THREAD_POOL.submit(myCallable);
-        return task.get();
+        THREAD_POOL.submit(myRunnable);
     }
 
     public boolean requestValidation(String[] parts) throws ExecutionException,
@@ -141,10 +153,7 @@ public class Server {
 
     public static String getBody(BufferedReader in) throws ExecutionException,
             InterruptedException {
-        Callable<String> myCallable = () -> {
-            String body = in.readLine();
-            return body;
-        };
+        Callable<String> myCallable = in::readLine;
         Future<String> taskBody = THREAD_POOL.submit(myCallable);
         return taskBody.get();
     }
