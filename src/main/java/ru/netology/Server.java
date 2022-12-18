@@ -144,7 +144,7 @@ public class Server {
             }
 
             for (Map.Entry<Handler, String> kv : handlersPath.entrySet()) {
-                if (kv.getKey().equals(verbName)) {
+                if (kv.getKey().equals(verbName) & kv.getValue().equals(request.getPath())) {
                     desiredHandler = kv.getKey();
                 }
             }
