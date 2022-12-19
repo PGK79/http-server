@@ -4,6 +4,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Request {
@@ -49,13 +50,22 @@ public class Request {
         return URLEncodedUtils.parse(pathAndQuery[1], StandardCharsets.UTF_8, '&');
     }
 
-    public void getPostParam(String name){
-
+    public List<NameValuePair> getPostParam(String name) {
+        List<NameValuePair> allPostParam = getPostParams();
+        List<NameValuePair> parametersWithSameName = new ArrayList<>();
+        for (NameValuePair result : allPostParam) {
+            if (name.equals(result.getName())) {
+                parametersWithSameName.add(result);
+            }
+        }
+        return parametersWithSameName;
     }
-    public List<NameValuePair> getPostParams(){
+
+    public List<NameValuePair> getPostParams() {
         return URLEncodedUtils.parse(body, StandardCharsets.UTF_8, '&');
 
     }
+
     @Override
     public String toString() {
         return "Метод: " + verb + "\n" + "Путь: " + path + "\n" + "Заголовки:\n " + headers
