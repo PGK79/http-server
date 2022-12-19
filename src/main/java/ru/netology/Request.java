@@ -28,6 +28,11 @@ public class Request {
         return path;
     }
 
+    public void getQueryParam(String name){
+    }
+    public void getQueryParams(){
+    }
+
     @Override
     public String toString() {
         return  "Метод: " + verb + "\n"+ "Путь: " + path + "\n" + "Заголовки:\n " + headers
