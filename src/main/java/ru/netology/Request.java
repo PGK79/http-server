@@ -58,6 +58,7 @@ public class Request {
                 parametersWithSameName.add(result);
             }
         }
+        allPostParam = null;
         return parametersWithSameName;
     }
 
