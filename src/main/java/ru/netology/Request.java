@@ -64,7 +64,6 @@ public class Request {
 
     public List<NameValuePair> getPostParams() {
         return URLEncodedUtils.parse(body, StandardCharsets.UTF_8, '&');
-
     }
 
     @Override
