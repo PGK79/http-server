@@ -46,9 +46,7 @@ public class Request {
 
     public List<NameValuePair> getQueryParams() {
         String[] pathAndQuery = path.split("\\?");
-        List<NameValuePair> queryParams = URLEncodedUtils.parse(pathAndQuery[1],
-                StandardCharsets.UTF_8, '&');
-        return queryParams;
+        return URLEncodedUtils.parse(pathAndQuery[1], StandardCharsets.UTF_8, '&');
     }
 
     @Override
