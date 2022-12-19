@@ -49,6 +49,13 @@ public class Request {
         return URLEncodedUtils.parse(pathAndQuery[1], StandardCharsets.UTF_8, '&');
     }
 
+    public void getPostParam(String name){
+
+    }
+    public List<NameValuePair> getPostParams(){
+        return URLEncodedUtils.parse(body, StandardCharsets.UTF_8, '&');
+
+    }
     @Override
     public String toString() {
         return "Метод: " + verb + "\n" + "Путь: " + path + "\n" + "Заголовки:\n " + headers
