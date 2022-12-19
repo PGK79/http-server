@@ -47,7 +47,6 @@ public class Server {
                      final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                      final var out = new BufferedOutputStream(socket.getOutputStream());
                 ) {
-
                     boolean noEmptyRequest = processingRequestLine(in);
 
                     if (noEmptyRequest == false) {
@@ -60,7 +59,6 @@ public class Server {
                     }
 
                     Request request = buildRequest(parts, in);
-
                     Handler desiredHandler = handlerSearch(request);
 
                     if (desiredHandler == null) {
