@@ -138,6 +138,7 @@ public class Server {
             Handler verbName = null;
 
             String[] pathFragments = request.getPath().split("\\?");
+            //так можно и параметры из Query String получить pathFragments[1] и split
             String onlyPath = pathFragments[0];
 
             for (Map.Entry<Handler, String> kv : handlersVerb.entrySet()) {
