@@ -1,27 +1,37 @@
 package ru.netology;
 
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.RequestContext;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Request {
+public class Request implements RequestContext {
     private String verb;
     private String path;
+    private String protocol;
     private List<String> headers;
     private String body;
 
-    public Request(String verb, String path, List<String> headers) {
+    public Request(String verb, String path, String protocol, List<String> headers) {
         this.verb = verb;
         this.path = path;
+        this.protocol = protocol;
         this.headers = headers;
     }
 
-    public Request(String verb, String path, List<String> headers, String body) {
+    public Request(String verb, String path, String protocol, List<String> headers, String body) {
         this.verb = verb;
         this.path = path;
+        this.protocol = protocol;
         this.headers = headers;
         this.body = body;
     }
@@ -62,12 +72,15 @@ public class Request {
         return parametersWithSameName;
     }
 
-    public void getPart(String name){
+    public void getPart(String name) {
 
     }
-    public void getParts(){
 
+    public List<FileItem> getParts() throws FileUploadException {
+        boolean isMultipart = ServletFileUpload.isMultipartContent(this);
+        return new ServletFileUpload(new DiskFileItemFactory()).parseRequest(this);
     }
+
     public List<NameValuePair> getPostParams() {
         return URLEncodedUtils.parse(body, StandardCharsets.UTF_8, '&');
     }
@@ -76,5 +89,37 @@ public class Request {
     public String toString() {
         return "Метод: " + verb + "\n" + "Путь: " + path + "\n" + "Заголовки:\n " + headers
                 + "\nТело:\n " + body;
+    }
+
+    @Override
+    public String getCharacterEncoding() {
+        return "UTF_8";
+    }
+
+    @Override
+    public String getContentType() {
+        String result = null;
+        for (String header : headers)
+            if (header.contains("Content-Type")) {
+                String[] bufPartsHeader = header.split(":");
+                result = bufPartsHeader[1].trim();
+            }
+        return result;
+    }
+
+    @Override
+    public int getContentLength() {
+        int result = 0;
+        for (String header : headers)
+            if (header.contains("Content-Length")) {
+                String[] bufPartsHeader = header.split(" ");
+                result = Integer.parseInt(bufPartsHeader[1]);
+            }
+        return result;
+    }
+
+    @Override
+    public InputStream getInputStream() {
+        return new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
     }
 }
