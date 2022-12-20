@@ -181,12 +181,15 @@ public class Server {
     public static String getBody(BufferedReader in, int length) throws ExecutionException,
             InterruptedException {
         Callable<String> myCallable = () -> {
-            StringBuffer buffer = new StringBuffer();
+            StringBuffer builderBuffer = new StringBuffer();
+            char[] buffer = new char[length];
+
+            in.read(buffer, 0, length);
+
             for (int i = 0; i < length; i++) {
-                int c = in.read();
-                buffer.append((char) c);
+                builderBuffer.append(buffer[i]);
             }
-            return buffer.toString();
+            return builderBuffer.toString().trim();
         };
         Future<String> taskList = THREAD_POOL.submit(myCallable);
         return taskList.get();
