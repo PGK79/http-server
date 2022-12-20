@@ -1,5 +1,7 @@
 package ru.netology;
 
+import org.apache.commons.fileupload.FileUploadException;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -61,6 +63,8 @@ public class Server {
                     Request request = buildRequest(parts, in);
                     Handler desiredHandler = handlerSearch(request);
 
+                    System.out.println(request.getParts());
+
                     if (desiredHandler == null) {
                         out.write((
                                 "HTTP/1.1 404 Not Found\r\n" +
@@ -79,6 +83,8 @@ public class Server {
                     // Если ошибка прекратить потоки и цикл
                     THREAD_POOL.shutdown();
                     break;
+                } catch (FileUploadException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -112,6 +118,7 @@ public class Server {
         Callable<Request> myCallable = () -> {
             String verb = parts[0];
             String path = parts[1];
+            String protocol = parts[2];
             List<String> headers = getHeaders(in);
             String body = null;
 
@@ -124,9 +131,9 @@ public class Server {
             }
 
             if (body != null) {
-                return new Request(verb, path, headers, body);
+                return new Request(verb, path, protocol, headers, body);
             } else {
-                return new Request(verb, path, headers);
+                return new Request(verb, path, protocol, headers);
             }
         };
         Future<Request> taskRequest = THREAD_POOL.submit(myCallable);
@@ -189,7 +196,8 @@ public class Server {
             for (int i = 0; i < length; i++) {
                 builderBuffer.append(buffer[i]);
             }
-            return builderBuffer.toString().trim();
+            return builderBuffer.toString();
+
         };
         Future<String> taskList = THREAD_POOL.submit(myCallable);
         return taskList.get();
