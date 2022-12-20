@@ -62,6 +62,12 @@ public class Request {
         return parametersWithSameName;
     }
 
+    public void getPart(String name){
+
+    }
+    public void getParts(){
+
+    }
     public List<NameValuePair> getPostParams() {
         return URLEncodedUtils.parse(body, StandardCharsets.UTF_8, '&');
     }
