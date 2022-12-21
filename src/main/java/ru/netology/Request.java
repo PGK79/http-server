@@ -78,7 +78,11 @@ public class Request implements RequestContext {
 
     public List<FileItem> getParts() throws FileUploadException {
         boolean isMultipart = ServletFileUpload.isMultipartContent(this);
-        return new ServletFileUpload(new DiskFileItemFactory()).parseRequest(this);
+        if (isMultipart) {
+            return new ServletFileUpload(new DiskFileItemFactory()).parseRequest(this);
+        }else{
+            return null;
+        }
     }
 
     public List<NameValuePair> getPostParams() {
