@@ -63,8 +63,6 @@ public class Server {
                     Request request = buildRequest(parts, in);
                     Handler desiredHandler = handlerSearch(request);
 
-                    System.out.println(request.getParts());
-
                     if (desiredHandler == null) {
                         out.write((
                                 "HTTP/1.1 404 Not Found\r\n" +
@@ -83,8 +81,6 @@ public class Server {
                     // Если ошибка прекратить потоки и цикл
                     THREAD_POOL.shutdown();
                     break;
-                } catch (FileUploadException e) {
-                    throw new RuntimeException(e);
                 }
             }
         }
