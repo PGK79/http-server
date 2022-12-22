@@ -47,7 +47,6 @@ public class Server {
                      final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                      final var out = new BufferedOutputStream(socket.getOutputStream());
                 ) {
-
                     boolean noEmptyRequest = processingRequestLine(in);
 
                     if (noEmptyRequest == false) {
@@ -118,7 +117,9 @@ public class Server {
 
             for (String result : headers) {
                 if (result.contains("Content-Length")) {
-                    body = getBody(in);
+                    String[] contLeg = result.split(" ");
+                    int length = Integer.parseInt(contLeg[1]);
+                    body = getBody(in, length);
                 }
             }
 
@@ -162,6 +163,7 @@ public class Server {
             InterruptedException {
         Callable<List<String>> myCallable = () -> {
             List<String> headers = new ArrayList<>();
+
             while (true) {
                 String header = in.readLine();
                 if (!header.equals("")) {
@@ -176,10 +178,17 @@ public class Server {
         return taskList.get();
     }
 
-    public static String getBody(BufferedReader in) throws ExecutionException,
+    public static String getBody(BufferedReader in, int length) throws ExecutionException,
             InterruptedException {
-        Callable<String> myCallable = in::readLine;
-        Future<String> taskBody = THREAD_POOL.submit(myCallable);
-        return taskBody.get();
+        Callable<String> myCallable = () -> {
+            StringBuffer buffer = new StringBuffer();
+            for (int i = 0; i < length; i++) {
+                int c = in.read();
+                buffer.append((char) c);
+            }
+            return buffer.toString();
+        };
+        Future<String> taskList = THREAD_POOL.submit(myCallable);
+        return taskList.get();
     }
 }

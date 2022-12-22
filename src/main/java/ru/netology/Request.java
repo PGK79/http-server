@@ -4,6 +4,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Request {
@@ -47,6 +48,22 @@ public class Request {
     public List<NameValuePair> getQueryParams() {
         String[] pathAndQuery = path.split("\\?");
         return URLEncodedUtils.parse(pathAndQuery[1], StandardCharsets.UTF_8, '&');
+    }
+
+    public List<NameValuePair> getPostParam(String name) {
+        List<NameValuePair> allPostParam = getPostParams();
+        List<NameValuePair> parametersWithSameName = new ArrayList<>();
+        for (NameValuePair result : allPostParam) {
+            if (name.equals(result.getName())) {
+                parametersWithSameName.add(result);
+            }
+        }
+        allPostParam = null;
+        return parametersWithSameName;
+    }
+
+    public List<NameValuePair> getPostParams() {
+        return URLEncodedUtils.parse(body, StandardCharsets.UTF_8, '&');
     }
 
     @Override
