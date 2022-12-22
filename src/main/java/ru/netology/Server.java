@@ -112,6 +112,7 @@ public class Server {
         Callable<Request> myCallable = () -> {
             String verb = parts[0];
             String path = parts[1];
+            String protocol = parts[2];
             List<String> headers = getHeaders(in);
             String body = null;
 
@@ -124,9 +125,9 @@ public class Server {
             }
 
             if (body != null) {
-                return new Request(verb, path, headers, body);
+                return new Request(verb, path, protocol, headers, body);
             } else {
-                return new Request(verb, path, headers);
+                return new Request(verb, path, protocol, headers);
             }
         };
         Future<Request> taskRequest = THREAD_POOL.submit(myCallable);
@@ -181,12 +182,16 @@ public class Server {
     public static String getBody(BufferedReader in, int length) throws ExecutionException,
             InterruptedException {
         Callable<String> myCallable = () -> {
-            StringBuffer buffer = new StringBuffer();
+            StringBuffer builderBuffer = new StringBuffer();
+            char[] buffer = new char[length];
+
+            in.read(buffer, 0, length);
+
             for (int i = 0; i < length; i++) {
-                int c = in.read();
-                buffer.append((char) c);
+                builderBuffer.append(buffer[i]);
             }
-            return buffer.toString();
+            return builderBuffer.toString();
+
         };
         Future<String> taskList = THREAD_POOL.submit(myCallable);
         return taskList.get();
