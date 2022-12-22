@@ -11,8 +11,7 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Request implements RequestContext {
     private String verb;
@@ -72,15 +71,42 @@ public class Request implements RequestContext {
         return parametersWithSameName;
     }
 
-    public void getPart(String name) {
-
+    public void getPart(String name) throws FileUploadException {
+        Map<String, List<String>> allParts = getParts();
+        if (allParts.containsKey(name)) {
+            System.out.println(allParts.get(name));
+        }else{
+            System.out.println("Такие данные не были переданы");
+        }
     }
 
-    public List<FileItem> getParts() throws FileUploadException {
-        boolean isMultipart = ServletFileUpload.isMultipartContent(this);
-        if (isMultipart) {
-            return new ServletFileUpload(new DiskFileItemFactory()).parseRequest(this);
-        }else{
+    public Map<String, List<String>> getParts() throws FileUploadException {
+        Map<String, List<String>> allParts = new HashMap<>();
+
+        if (ServletFileUpload.isMultipartContent(this)) {
+            List<FileItem> items = new ServletFileUpload(new DiskFileItemFactory()).parseRequest(this);
+            Iterator<FileItem> iter = items.iterator();
+
+            while (iter.hasNext()) {
+                List<String> elementsPart = new ArrayList<>();
+                FileItem item = iter.next();
+
+                if (item.isFormField()) {
+                    elementsPart.add("Field Name = " + item.getFieldName());
+                    elementsPart.add("Content = " + item.getString());
+                    elementsPart.add("Content Size = " + item.getSize());
+                    allParts.put(item.getString(), elementsPart);
+                } else {
+                    elementsPart.add("Field Name = " + item.getFieldName());
+                    elementsPart.add("Content type = " + item.getContentType());
+                    elementsPart.add("Content = " + item.getString());
+                    elementsPart.add("Content Size = " + item.getSize());
+                    elementsPart.add("File name = " + item.getName());
+                    allParts.put(item.getName(), elementsPart);
+                }
+            }
+            return allParts;
+        } else {
             return null;
         }
     }
@@ -97,7 +123,7 @@ public class Request implements RequestContext {
 
     @Override
     public String getCharacterEncoding() {
-        return "UTF_8";
+        return "UTF_8";//можно взять и из строки, а при отсутствии данных выставить UTF_8
     }
 
     @Override
