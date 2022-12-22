@@ -67,7 +67,6 @@ public class Request implements RequestContext {
                 parametersWithSameName.add(result);
             }
         }
-        allPostParam = null;
         return parametersWithSameName;
     }
 
@@ -75,7 +74,7 @@ public class Request implements RequestContext {
         Map<String, List<String>> allParts = getParts();
         if (allParts.containsKey(name)) {
             System.out.println(allParts.get(name));
-        }else{
+        } else {
             System.out.println("Такие данные не были переданы");
         }
     }
